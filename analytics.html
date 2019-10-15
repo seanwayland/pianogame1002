@@ -1,0 +1,108 @@
+<!DOCTYPE html>
+
+<script src="https://cdn.jsdelivr.net/npm/vue/dist/vue.js"></script>
+<script src="https://unpkg.com/axios/dist/axios.min.js"></script>
+
+<script>
+
+    /***
+     * ANALYTICS PAGE WITH GETS DATA FROM MONGODB DATABASE AND DISPLAYS NO OF CONNECTIONS
+     * AND MESSSAGES TO DATE
+     * @param milliseconds
+     * @returns {Promise<unknown>}
+     */
+
+
+    const sleep = (milliseconds) => {
+        return new Promise(resolve => setTimeout(resolve, milliseconds))
+    }
+
+    var theData = []
+</script>
+
+<div id="app">
+    {{ data }}
+</div>
+
+<script>
+    var vm = new Vue({
+        el: '#app',
+        data: theData,
+
+
+        mounted() {
+            axios
+                .get('/connectionData')
+                .then(response => {
+                        var cons = response.data.connects;
+                        console.log(cons);
+                        theData.unshift(cons);
+                        // vm.data.unshift(cons);
+                        //this.data.unshift(cons);
+                        console.log(theData);
+                        // console.log(this.data);
+                        var msgs = response.data.messages;
+                        console.log(msgs);
+                        theData.unshift(msgs);
+                        //this.data.unshift(msgs);
+                        console.log(theData);
+                        // console.log(this.data);
+
+                    }
+                )
+        }
+    })
+
+</script>
+
+
+<meta charset="utf-8">
+<style>
+
+    .chart div {
+        font: 10px sans-serif;
+        background-color: steelblue;
+        text-align: right;
+        padding: 3px;
+        margin: 1px;
+        color: white;
+    }
+
+</style>
+<div>
+    CONNECTIONS DATA STORED IN MONGODB RENDERED WITH D3 and VUE : </br>
+    MESSAGES BAR: </br>
+    CONNECTIONS BAR: </br>
+
+</div>
+<div class="chart"></div>
+<script src="//d3js.org/d3.v3.min.js"></script>
+<script>
+
+
+    sleep(200).then(() => { // had to use a sleep so data variable had been updated on page load
+        //do stuff
+
+        /***
+         * D3 BAR CHART
+         * @type {number|Array}
+         */
+        var x = d3.scale.linear()
+            .domain([0, d3.max(theData)])
+            .range([0, 420]);
+
+        d3.select(".chart")
+            .selectAll("div")
+            .data(theData)
+            .enter().append("div")
+            .style("width", function (d) {
+                return x(d) + "px";
+            })
+            .text(function (d) {
+                return d;
+            });
+
+    })
+
+</script>
+

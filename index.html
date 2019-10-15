@@ -1,0 +1,794 @@
+<!DOCTYPE html>
+
+<!--
+PIANO GAME :
+A 2 player or one player ear training guessing game.
+Players choose notes from the musical chromatic scale and a melody length.
+The computer generates a random melody.
+The players can listen to the melody by pressing a button multiple times to play the melody sequence.
+In the one player version there is a "bank" with 10000 in it.
+Increasing the number of notes chosen and the length increases the "bet amount" .
+A keyboard is used to "guess" the melody. Player gets 3 guesses.
+A correct guess removes money from the bank account and adds it to the players bank.
+If the bank runs out of money the player wins.
+In the 2 player version each player has 10,000 to start and takes turn having 3 guesses at a melody.
+Each player chooses the notes and melody length for his/her/nonbinary turn.
+The goal is to bankrupt the other player in the 2 player version.
+In the 2 player version choosing all 12 chromatic notes for the melody will make each melody note worth a lot more.
+A player can choose a one player or 2 player game.
+If a player chooses a 2 player game they can see a list of playing games and ask to join ones with only one player in them.
+A 2 player game can be restarted or deleted.
+-->
+
+<html xmlns:v-bind="http://www.w3.org/1999/xhtml" xmlns:v-on="http://www.w3.org/1999/xhtml">
+<head>
+
+
+    <title>Piano game</title>
+</head>
+
+<script src="audiosynth.js"></script>
+
+
+<!-- load some basic files and set up libraries -->
+<script src="audiosynth.js"></script>
+<script src="Timer.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/vue/dist/vue.js"></script>
+<script language="javascript" src="vars.js"></script>
+
+
+<!-- Load d3.js -->
+<script src="https://d3js.org/d3.v4.js"></script>
+<script language="javascript" src="render.js"></script>
+
+<audio id="loseAudio">
+
+    <source src="lose.mp3" type="audio/mpeg" preload="auto">
+</audio>
+<audio id="winAudio">
+
+    <source src="win.mp3" type="audio/mpeg" preload="auto">
+</audio>
+<audio id="applauseAudio">
+
+    <source src="applause.mp3" type="audio/mpeg" preload="auto">
+</audio>
+<script src="https://cdn.jsdelivr.net/npm/vue/dist/vue.js"></script>
+<script src="/socket.io/socket.io.js"></script>
+
+<script scr="./socket.js"></script>
+<script src="https://code.jquery.com/jquery-1.11.1.js"></script>
+
+<link ref="stylesheet" src="./node_modules/vue-slider-component/theme/default.css">
+<script src="./node_modules/vue-slider-component/dist/vue-slider-component.umd.min.js"></script>
+
+
+<script>
+    /** SET UP AUDIOSYNTH CLSS
+     * simple javascript synthesizer used for piano notes
+     * https://github.com/keithwhor/audiosynth
+     */
+    Synth instanceof AudioSynth; // true
+    var testInstance = new AudioSynth;
+    testInstance instanceof AudioSynth; // true
+    testInstance === Synth; // true
+</script>
+
+
+<script>
+
+    /***
+     * SET UP SOCKET COMMUNICATION
+     */
+
+    var playerDollars = 10000;
+    var otherDollars = 10000;
+    var betAmount = 100;
+
+
+    var socket = io();
+
+    var room = 1;
+    var otherPlayerName = "";
+    var outMsg = "";
+    var chatMsg = "";
+    var shotMsg = "";
+    var codeMsg = "";
+    var outShotMsg = "";
+    var initialMsgs = [{message: 'impeach me', name: 'trump'},
+        {message: 'cool canon man', name: 'bach'},
+        {message: 'saleiri ripped me off', name: 'mozart'},
+        {message: 'doo do doo', name: 'sting'},
+        {message: 'oh bla di bla da', name: 'mccartney'}];
+
+
+    /**
+     * do stuff with socket when we connect to a new room
+     */
+
+    socket.on('connectToRoom', function (data) {
+        room = data.roomnum;
+        for (j in initialMsgs) {
+            vm.Messages.unshift(initialMsgs[j]);
+        }
+
+
+        console.log("user connected");
+        console.log(room);
+        vm.setRoomNumber(data.roomnum);
+        if (data.playerNum == 2) {
+            console.log(data.playerNum);
+            vm.setPlayerNumber(data.playerNum);
+        }
+        console.log(vm.RoomNumber);
+    });
+
+    // server sends a message thru
+    socket.on('newmsg', function (data) {
+        console.log('new message received');
+        vm.setMessage(data);
+    });
+
+    // server sends someones turn
+    socket.on('newShotMsg', function (data) {
+        console.log('new shot message received');
+        vm.setShotMessage(data);
+    });
+
+    // server sends the secret code from the other player
+    socket.on('newCodeMsg', function (data) {
+        console.log('new co mdeessage received');
+
+        vm.setCodeMessage(data);
+    });
+
+    // somone sets their name
+    socket.on('newNameMsg', function (data) {
+        console.log('new name message received');
+        if (data.playerName != vm.nickname) {
+            vm.setNameMessage(data);
+        }
+    });
+
+    // someone takes a guess
+    socket.on('newGuessMsg', function (data) {
+        console.log('new guess message received');
+        console.log(data.message);
+
+        vm.setGuessMessage(data);
+    });
+    // someone wins !!
+    socket.on('newWinMsg', function (data) {
+        console.log('new win message received');
+        console.log(data.user);
+        console.log(vm.nickname);
+
+        vm.handleWinMessage(data);
+    });
+    // someone runs out of turns and loses dough
+    socket.on('newLoseMsg', function (data) {
+        console.log('new Lose message received');
+
+        vm.handleLoseMessage(data);
+    });
+
+    // someone ran the other player out of dough
+    socket.on('newGameWinMsg', function (data) {
+        console.log('new game win message received');
+        console.log(data.user);
+        console.log(vm.nickname);
+
+        vm.handleGameWinMessage(data);
+    });
+
+    // someone ran out of dough
+    socket.on('newGameLoseMsg', function (data) {
+        console.log('new Game Lose message received');
+
+        vm.handleGameLoseMessage(data);
+    });
+
+
+    // old message fired up from DB
+    socket.on('oldMsg', function (data) {
+        //console.log('old message received');
+        console.log('client');
+        // var jdata = data.json;
+
+        //console.log(data.message);
+        // for (i in data){
+        //     console.log(data[i].message);
+        //}
+        var oldMsg = {message: data.message, name: data.name};
+        vm.oldMessages.unshift(oldMsg);
+
+    });
+
+
+</script>
+
+<body>
+
+<style>
+
+    div.a {
+
+        display: inline-block;
+
+    }
+
+    div.b {
+        font-size: 10px;
+    }
+
+    body {
+        background: url(background.png);
+        background-repeat: no-repeat;
+
+        background-size: cover;
+
+        font-family: Palatino, monospace;
+        font-size: x-small;
+    }
+
+    div.j {
+
+        display: inline-block;
+    }
+
+    div.g {
+        height: auto;
+    }
+
+    p.a {
+        height: 20px;
+    }
+
+    button:hover {
+        background-color: yellow;
+    }
+
+    button {
+        border-radius: 12px;
+        background-color: #4CAF50;
+        padding: 12px 28px;
+    }
+
+    div.keyboard {
+        display: inline-block;
+    }
+
+    .right {
+        position: absolute;
+        right: 0px;
+        width: 375px;
+        height: 450px;
+        overflow: scroll;
+
+        border: 3px solid #73AD21;
+        padding: 10px;
+
+    }
+
+</style>
+
+
+<div id="vue_det" class="right">
+
+
+    <!--
+    VUE ELEMENT TO HOLD CHAT MESSAGES AND CONNECTIONS DATA
+    -->
+    <input type="text" v-on:keyup.enter="showinputvalue" v-bind:style="styleobj" placeholder="Enter your name"/>
+    <input type="text" v-on:keyup.enter="sendaMessage" v-bind:style="styleobj" placeholder="send a chat "/>
+    <!--
+    <input type = "text" v-on:keyup.enter = "sendShotMessage" v-bind:style = "styleobj" placeholder = "send a shot to other player "/>
+    -->
+    <br> </br>
+    <b>Nickname : {{nickname}}</b>
+    <br> </br>
+    <b>RoomNumber : {{RoomNumber}}</b>
+    <br> </br>
+    <b>Other Player : {{otherName}}</b>
+    <br> </br>
+    <b>Playing now: {{playingNow}}</b>
+    <br> </br>
+    <b>Secret Code: {{codeMessage}}</b>
+    <br> </br>
+    <b>Guess taken: {{guessMessage}}</b>
+    <br> </br>
+
+    <b>Chat message : {{message}}</b>
+
+    <!--
+
+    <br> </br>
+
+    <b>Last Winner : {{lastWinner}}</b>
+
+    <br> </br>
+
+    -->
+
+    <br> </br>
+
+    <b> This game old messages </b>
+    <li v-for="index in 4" :key="index">
+        {{ Messages[index].name + ' says: ' + Messages[index].message}}
+    </li>
+
+    <br> </br>
+
+    <!--
+    <b> This game old winners  </b>
+    <li v-for="index in 4" :key="index">
+        {{ oldWinners[index].name }}
+    </li>
+
+
+    <br> </br>
+    -->
+
+    <b> Fossilised room messages graffiti </b>
+
+
+    <li v-for="index in 4" :key="index">
+        {{ oldMessages[index].name + ' says: ' + oldMessages[index].message}}
+    </li>
+
+
+    <!--
+    <button v-on:click="testMessage">test message</button>
+    -->
+
+
+</div>
+<script>
+    // import io from 'socket.io-client';
+
+
+    var vm = new Vue({
+        el: '#vue_det',
+        data: {
+            playerNumber: 1,
+            nickname: "enter name",
+            otherName: "other player",
+            RoomNumber: room,
+            playingNow: "you",
+            message: chatMsg,
+            shotMessage: shotMsg,
+            codeMessage: codeMsg,
+            outShotMessage: outShotMsg,
+            outMessage: outMsg,
+            guessMessage: "next guess",
+            lastWinner: "Jim Moginie",
+
+            oldMessages: [
+                {message: 'impeach me', name: 'trump'},
+                {message: 'cool canon man', name: 'bach'},
+                {message: 'saleiri ripped me off', name: 'mozart'},
+                {message: 'doo do doo', name: 'sting'},
+                {message: 'oh bla di bla da', name: 'mccartney'}
+
+
+            ],
+
+            oldWinners: [
+                {name: "Don Walker"},
+                {name: "Billy Field"},
+                {name: "Matt Finish"},
+                {name: "adriana xenides"},
+                {name: "joyce mayne"}
+
+            ],
+            Messages: [
+                {message: 'Foot', name: 'bob'},
+                {message: 'Bar', name: 'steve'},
+                {message: 'Footi', name: 'bob'},
+                {message: 'Bari', name: 'steve'},
+                {message: 'Footo', name: 'bobo'}
+
+            ]
+
+
+
+
+            //   socket: io{()
+
+        },
+
+
+        methods: {
+
+            testMessage: function () {
+                socket.emit('msg', {roomnum: this.RoomNumber, message: "hi", user: this.nickname});
+            },
+
+            sendShotMessage: function () {
+                this.outShotMessage = event.target.value;
+                socket.emit('ShotMsg', {
+                    message: this.outShotMessage,
+                    playerName: this.nickname,
+                    roomnum: this.RoomNumber
+                });
+                console.log('sending shot to playerNumber:' + this.playerNumber)
+            },
+
+            sendaMessage: function (event) {
+                this.outMessage = event.target.value;
+
+                socket.emit('msg', {roomnum: this.RoomNumber, message: this.outMessage, user: this.nickname});
+                console.log(this.outMessage);
+                console.log(this.nickname);
+                console.log(this.RoomNumber);
+
+
+            },
+
+            setMessage: function (d) {
+
+                this.message = d.user + " says " + d.message;
+                var MSG = {message: d.message, name: d.user};
+                this.Messages.unshift(MSG);
+                ;
+            },
+
+            setShotMessage: function (d) {
+                if (d.playerName !== this.nickname)
+                    this.shotMessage = "player: " + d.playerName + "shot a " + d.message
+            },
+
+            setNameMessage: function (d) {
+
+                this.otherName = d.playerName;
+            },
+
+            setCodeMessage: function (d) {
+                this.playingNow = d.user;
+                if (d.user !== this.nickname) {
+                    document.getElementById("newCode").disabled = true;
+                    document.getElementById("melody").disabled = true;
+                    this.codeMessage = d.message;
+                } else {
+                    this.codeMessage = "??????";
+                }
+            },
+
+
+            handleLoseMessage: function (d) {
+                if (d.user !== vm.nickname) {
+                    alert("other player out of guesses");
+                    ///you
+                    /**
+                     * send a win message
+                     * @type {number}
+                     */
+                    playerDolls.value = playerDolls.value + 2 * d.amount;
+                    /// other guy
+                    playerDolls.value2 = playerDolls.value2 - 4 * d.amount;
+                    bet.value = 0;
+                    document.querySelector('animate').beginElement();
+                    //   document.getElementById('dollarText').visibility = "visible";
+                    document.getElementById('dollarText').beginElement();
+
+                    document.getElementById("melody").disabled = false;
+                    document.getElementById("newCode").disabled = false;
+                    this.playingNow = vm.nickname;
+
+                } else {
+                    this.playingNow = vm.otherName;
+                }
+            },
+
+
+            handleWinMessage: function (d) {
+                alert(d.user);
+                alert(vm.nickname);
+                if (d.user !== vm.nickname) {
+                    alert("other player guessed it ");
+                    playerDolls.value = playerDolls.value - 2 * d.amount;
+                    playerDolls.value2 = playerDolls.value2 + 2 * d.amount;
+                    bet.value = 0;
+                    document.querySelector('animate').beginElement();
+                    //   document.getElementById('dollarText').visibility = "visible";
+                    document.getElementById('dollarText').beginElement();
+                    document.getElementById("melody").disabled = false;
+                    document.getElementById("newCode").disabled = false;
+                    this.playingNow = vm.nickname;
+
+                } else {
+                    this.playingNow = vm.otherName;
+                }
+            },
+
+
+            handleGameWinMessage: function (d) {
+                vm.lastWinner = d.user;
+                var daChamp = {name: d.user};
+                vm.oldWinners.unshift(daChamp);
+                console.log(daChamp);
+                console.log(oldWinners);
+
+                if (d.user !== vm.nickname) {
+                    alert("other player won ");
+                    playerDolls.value = 10000;
+                    playerDolls.value2 = 10000;
+                    bet.value = 0;
+                    document.getElementById("melody").disabled = false;
+                    document.getElementById("newCode").disabled = false;
+                    this.playingNow = vm.nickname;
+
+                } else {
+                    this.playingNow = vm.otherName;
+                }
+            },
+
+
+            handleGameLoseMessage: function (d) {
+
+                vm.lastWinner = d.user;
+                var daChamp = {name: d.user};
+                vm.oldWinners.unshift(daChamp);
+                console.log(daChamp);
+                console.log(oldWinners);
+                alert(d.user);
+                alert(vm.nickname);
+                if (d.user !== vm.nickname) {
+                    alert("other player ran out of dough YOU WON  ");
+                    playerDolls.value = 10000;
+                    playerDolls.value2 = 10000;
+                    bet.value = 0;
+                    document.getElementById("melody").disabled = false;
+                    document.getElementById("newCode").disabled = false;
+
+                } else {
+                    this.playingNow = vm.otherName;
+                }
+            },
+
+
+            setGuessMessage: function (d) {
+                this.guessMessage = d.message - 12;
+
+            },
+
+
+            mydetails: function () {
+                return "I am " + this.nickname + " " + this.RoomNumber;
+            },
+            setRoomNumber: function (r) {
+                this.RoomNumber = r;
+
+            },
+
+            setPlayerNumber: function (d) {
+                this.playerNumber = d;
+            },
+
+
+            showinputvalue: function (event) {
+                this.nickname = event.target.value;
+                socket.emit('NameMsg', {playerName: this.nickname, roomnum: this.RoomNumber});
+                console.log('sending name message');
+            }
+
+
+        }
+    })
+
+
+</script>
+
+<!--
+<input type="text" id="message">
+<button type="button" name="button" onclick="sendMessage()">Send</button>
+-->
+<script>
+
+
+    function sendMessage() {
+        var msg = document.getElementById('message').value;
+        if (msg) {
+            socket.emit('msg', {message: msg, user: vm.nickname, room: vm.RoomNumber});
+        }
+    }
+
+</script>
+
+
+<p><small>Ear training challenge! Guess the bank vault's secret melody code and bankrupt the bank!! <br>To start, select
+    some notes from the left keyboard, then generate a new secret melody code. <br> </small></p>
+<button class="y" id="instructions" onclick="instructionsFunction()">Game Instructions</button>
+
+<!--
+disable this button if not your turn
+
+document.getElementById("newCode").disabled = true;
+-->
+<button class="y" id="newCode" onclick="changeMelody()">Click me to make a new secret melody code.</button>
+
+<button class="y" id="melody" onclick="myFunction()">Click me to play secret melody code.</button>
+</br>
+<a href="/analytics" target="_blank">click to open analytics page in new window </a>
+</br>
+
+<p><small>Select number of notes to guess with the left slider. Each extra note adds $100 to bet!</small></p>
+<div id="num-notes" class="a">
+
+
+    <p><small>{{ value }} Note Melody to Guess</small></p>
+    <input height="30" type="range" min="0" max="10" class="form-control-range" id="formControlRange" v-model="value">
+</div>
+
+
+<script>
+    /**
+     * a vue variable which stores the number of notes ina melody chosen by a slider
+     *
+     * @type {Vue}
+     */
+    var numberofNotes = new Vue({
+        el: '#num-notes',
+        data: {
+            value: myData
+        }
+    })
+</script>
+
+<div class="keyboard">
+
+
+    <svg xmlns="http://www.w3.org/2000/svg" id="piano" width="300" height="150">
+
+        <!-- SVG piano keyboard. I borrowed the dimensions from somewhere. Cant remember now !
+        Used to select which notes are in the random melody choice
+        -->
+
+
+        <rect style="fill:white;stroke:black" id="Ckeyb" class="btn" x="0" y="0" width="23" height="120"
+              onclick="WhiteKeyClicked(0)"/>
+        <rect style="fill:white;stroke:black" id="Dkeyb" class="btn" x="23" y="0" width="23" height="120"
+              onclick="WhiteKeyClicked(2)"/>
+        <rect style="fill:white;stroke:black" id="Ekeyb" class="btn" x="46" y="0" width="23" height="120"
+              onclick="WhiteKeyClicked(4)"/>
+        <rect style="fill:white;stroke:black" id="Fkeyb" class="btn" x="69" y="0" width="23" height="120"
+              onclick="WhiteKeyClicked(5)"/>
+        <rect style="fill:white;stroke:black" id="Gkeyb" class="btn" x="92" y="0" width="23" height="120"
+              onclick="WhiteKeyClicked(7)"/>
+        <rect style="fill:white;stroke:black" id="Akeyb" class="btn" x="115" y="0" width="23" height="120"
+              onclick="WhiteKeyClicked(9)"/>
+        <rect style="fill:white;stroke:black" id="Bkeyb" class="btn" x="138" y="0" width="23" height="120"
+              onclick="WhiteKeyClicked(11)"/>
+        <rect style="fill:black;stroke:black" id="Cskeyb" class="btn" x="14.33333" y="0" width="13" height="80"
+              onclick="BlackKeyClicked(1)"/>
+        <rect style="fill:black;stroke:black" id="Dskeyb" class="btn" x="41.66666" y="0" width="13" height="80"
+              onclick="BlackKeyClicked(3)"/>
+        <rect style="fill:black;stroke:black" id="Fskeyb" class="btn" x="82.25" y="0" width="13" height="80"
+              onclick="BlackKeyClicked(6)"/>
+        <rect style="fill:black;stroke:black" id="Gskeyb" class="btn" x="108.25" y="0" width="13" height="80"
+              onclick="BlackKeyClicked(8)"/>
+        <rect style="fill:black;stroke:black" id="Askeyb" class="btn" x="134.75" y="0" width="13" height="80"
+              onclick="BlackKeyClicked(10)"/>
+
+    </svg>
+
+
+</div>
+
+<div class="keyboard">
+
+    <!-- a 2nd keyboard to play notes on ! -->
+
+    <svg xmlns="http://www.w3.org/2000/svg" id="piano2" width="300" height="150">
+
+
+        <rect style="fill:white;stroke:black" id="Ckeyb2" class="btn" x="0" y="0" width="23" height="120"
+              onclick="WhiteKeyClicked(12)"/>
+        <rect style="fill:white;stroke:black" id="Dkeyb2" class="btn" x="23" y="0" width="23" height="120"
+              onclick="WhiteKeyClicked(14)"/>
+        <rect style="fill:white;stroke:black" id="Ekeyb2" class="btn" x="46" y="0" width="23" height="120"
+              onclick="WhiteKeyClicked(16)"/>
+        <rect style="fill:white;stroke:black" id="Fkeyb2" class="btn" x="69" y="0" width="23" height="120"
+              onclick="WhiteKeyClicked(17)"/>
+        <rect style="fill:white;stroke:black" id="Gkeyb2" class="btn" x="92" y="0" width="23" height="120"
+              onclick="WhiteKeyClicked(19)"/>
+        <rect style="fill:white;stroke:black" id="Akeyb2" class="btn" x="115" y="0" width="23" height="120"
+              onclick="WhiteKeyClicked(21)"/>
+        <rect style="fill:white;stroke:black" id="Bkeyb2" class="btn" x="138" y="0" width="23" height="120"
+              onclick="WhiteKeyClicked(23)"/>
+        <rect style="fill:black;stroke:black" id="Cskeyb2" class="btn" x="14.33333" y="0" width="13" height="80"
+              onclick="BlackKeyClicked(13)"/>
+        <rect style="fill:black;stroke:black" id="Dskeyb2" class="btn" x="41.66666" y="0" width="13" height="80"
+              onclick="BlackKeyClicked(15)"/>
+        <rect style="fill:black;stroke:black" id="Fskeyb2" class="btn" x="82.25" y="0" width="13" height="80"
+              onclick="BlackKeyClicked(18)"/>
+        <rect style="fill:black;stroke:black" id="Gskeyb2" class="btn" x="108.25" y="0" width="13" height="80"
+              onclick="BlackKeyClicked(20)"/>
+        <rect style="fill:black;stroke:black" id="Askeyb2" class="btn" x="134.75" y="0" width="13" height="80"
+              onclick="BlackKeyClicked(22)"/>
+
+    </svg>
+
+
+</div>
+
+<div>
+    <p class="a"> Use the left keyboard to choose notes are in the game!</p>
+</div>
+<div>
+    <p class="a"> Use the right keyboard to guess the secret code! </p>
+</div>
+
+
+<div>
+
+
+    <!-- I wanted to try some animation .. I created a sh$tty dollar bill and made it move across the page
+    when a correct guess occurs. Pretty lame !!! -->
+
+    <svg xmlns="http://www.w3.org/2000/svg" height="90" width="640">
+        <g id="dollarbill" xmlns="http://www.w3.org/2000/svg">
+            <rect x="0" y="0" width="90" height="40" fill="green">
+                <animate xmlns="http://www.w3.org/2000/svg" id="dollar" attributeName="x" attributeType="XML"
+                         from="00" to="470"
+                         begin="indefinite" dur="2s"
+                         fill="remove" repeatCount="3"/>
+            </rect>
+
+
+            <text id="dollText" x="35" y="25" font-family="Verdana" font-size="16" fill="black">$100
+
+                <animate id="dollarText" xmlns="http://www.w3.org/2000/svg" attributeName="x" attributeType="XML"
+                         from="35" to="470"
+                         begin="indefinite" dur="2s"
+                         fill="remove" repeatCount="3"/>
+
+            </text>
+
+
+        </g>
+
+    </svg>
+
+</div>
+
+<!-- VUE objects to show the dollars left for each player and the bank -->
+<div
+        id="playerDollars" class="j">
+
+    player dollars: $
+    {{ value }} &nbsp;&nbsp; &nbsp;&nbsp; &nbsp;&nbsp;&nbsp;&nbsp; &nbsp;&nbsp;
+
+    other player dollars: $ {{ value2 }} &nbsp;&nbsp; &nbsp;&nbsp; &nbsp;&nbsp;&nbsp;&nbsp; &nbsp;&nbsp;
+
+</div>
+
+<div id="yourBet" class="j">
+
+    <br> Your Bet: $ {{ value }}
+
+
+    <script>
+        var playerDolls = new Vue({
+            el: '#playerDollars',
+            data: {
+                value: playerDollars,
+                value2: otherDollars,
+                // val3 : currentBet
+            }
+        })
+
+        var bet = new Vue({
+            el: '#yourBet',
+            data: {
+                value: betAmount
+                // val3 : currentBet
+            }
+        });
+
+    </script>
+
+
+</body>
+</html>
+
