@@ -2,6 +2,7 @@
 
 PIANO GAME :
 
+
 A 2 player or one player ear training guessing game. Players choose notes from the musical chromatic scale and a melody length. The computer generates a random melody. The players can listen to the melody by pressing a button multiple times to play the melody sequence.
 
 In the one player version there is a "bank" with 10000 in it. Increasing the number of notes chosen and the length increases the "bet amount" . A keyboard is used to "guess" the melody. Player gets 3 guesses. A correct guess removes money from the bank account and adds it to the players bank. If the bank runs out of money the player wins.
@@ -13,6 +14,20 @@ A player can choose a one player or 2 player game. If a player chooses a 2 playe
 Hosted here seanwayland.live on aws lightsail server 
 
 Created with NODE/MONGODB/VUE/JAVASCRIPT/EXPRESS/AXIOS/HTML/CSS/D3/SVG
+
+To install : 
+from root folder ( with root priveliges or sudo ) 
+$ npm init
+$ npm install --save express socket.io
+$ npm install mongoose
+$ npm install mongodb --save
+
+to run : 
+$ mongod
+$ node app.js 
+
+then point your browser to localhost:4001 
+
 
 audiosynth.js is a library for making musical sounds with javascript
 https://github.com/keithwhor/audiosynth
