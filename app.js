@@ -13,13 +13,13 @@ var io = require('socket.io')(http);
 
 //socket.io instantiation
 /***
-const io = require("socket.io")(server);
+ const io = require("socket.io")(server);
  **/
 /***
-var http = require('http').Server(app);
+ var http = require('http').Server(app);
  ***/
 /***
-var io = require('socket.io')(http);
+ var io = require('socket.io')(http);
 
  ***/
 var totalMessages = 0;
@@ -36,20 +36,20 @@ app.use(express.static('public'));
 
 /***
 
-const MongoClient = require('mongodb').MongoClient;
+ const MongoClient = require('mongodb').MongoClient;
 
 
-const uri = "mongodb+srv://seanwayland:<Oberheim1$>@cluster0-7msf5.gcp.mongodb.net/test?retryWrites=true&w=majority";
+ const uri = "mongodb+srv://seanwayland:<Oberheim1$>@cluster0-7msf5.gcp.mongodb.net/test?retryWrites=true&w=majority";
 
  ***/
 /***
-const client = new MongoClient(uri, { useNewUrlParser: true });
-client.connect(err => {
+ const client = new MongoClient(uri, { useNewUrlParser: true });
+ client.connect(err => {
     const collection = client.db("pianogame").collection("messages");
 
 
 
-    ***/
+ ***/
 
 /**
  * CREATE A COUPLE OF MONGODB SCHEMAS(DBS) one for messages on for connections
@@ -78,13 +78,13 @@ var Connections = mongoose.model('connection', connectionsSchema);
 
 /***
 
-var mongoose = require('mongoose');
+ var mongoose = require('mongoose');
 
 
-//mongoose.connect('mongodb://localhost:27017/test', { useNewUrlParser: true });
-mongoose.connect(uri, { useNewUrlParser: true });
+ //mongoose.connect('mongodb://localhost:27017/test', { useNewUrlParser: true });
+ mongoose.connect(uri, { useNewUrlParser: true });
 
- 
+
 
  ***/
 
@@ -328,7 +328,7 @@ io.on('connection', function (socket) {
 
 /**
 
-http.listen(4001, function () {
+ http.listen(4001, function () {
     console.log('listening on localhost:4001');
 });
 
