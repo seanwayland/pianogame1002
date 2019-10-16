@@ -4,16 +4,52 @@
  * SETS UP EXPRESS, MONGO (MONGOOSE ) , NODE
  * @type {createApplication}
  */
-
 const express = require('express');
-const app = express();
+
+var app = require('express')();
 var http = require('http').Server(app);
 var io = require('socket.io')(http);
+
+
+//socket.io instantiation
+/***
+const io = require("socket.io")(server);
+ **/
+/***
+var http = require('http').Server(app);
+ ***/
+/***
+var io = require('socket.io')(http);
+
+ ***/
 var totalMessages = 0;
 var totalConnections = 0;
 
 
 app.use(express.static('public'));
+
+/**
+ * CREATE A COUPLE OF MONGODB SCHEMAS(DBS) one for messages on for connections
+ * @type {Mongoose}
+ */
+
+
+/***
+
+const MongoClient = require('mongodb').MongoClient;
+
+
+const uri = "mongodb+srv://seanwayland:<Oberheim1$>@cluster0-7msf5.gcp.mongodb.net/test?retryWrites=true&w=majority";
+
+ ***/
+/***
+const client = new MongoClient(uri, { useNewUrlParser: true });
+client.connect(err => {
+    const collection = client.db("pianogame").collection("messages");
+
+
+
+    ***/
 
 /**
  * CREATE A COUPLE OF MONGODB SCHEMAS(DBS) one for messages on for connections
@@ -40,6 +76,17 @@ var connectionsSchema = mongoose.Schema({
 var Chat = mongoose.model('Message', chatSchema);
 var Connections = mongoose.model('connection', connectionsSchema);
 
+/***
+
+var mongoose = require('mongoose');
+
+
+//mongoose.connect('mongodb://localhost:27017/test', { useNewUrlParser: true });
+mongoose.connect(uri, { useNewUrlParser: true });
+
+ 
+
+ ***/
 
 exports.getOldMsgs = function (limit, Messages) {
 
@@ -279,6 +326,13 @@ io.on('connection', function (socket) {
  * listen on port 4001
  */
 
+/**
+
 http.listen(4001, function () {
+    console.log('listening on localhost:4001');
+});
+
+ **/
+http.listen(4001, function() {
     console.log('listening on localhost:4001');
 });
