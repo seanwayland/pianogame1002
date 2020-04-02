@@ -20,26 +20,46 @@ If a player chooses a 2 player game they can see a list of playing games and ask
 A 2 player game can be restarted or deleted.
 -->
 
-<html xmlns:v-bind="http://www.w3.org/1999/xhtml" xmlns:v-on="http://www.w3.org/1999/xhtml">
+
+<script src="https://cdn.socket.io/socket.io-1.0.0.js"></script>
+
+
+<!--
+<script src="https://seanwayland.live/:4001/socket.io/socket.io.js"></script>
+-->
+
+
+<html xmlns:v-bind="https://www.w3.org/1999/xhtml" xmlns:v-on="https://www.w3.org/1999/xhtml">
 <head>
 
 
     <title>Piano game</title>
 </head>
 
+
+
+
 <script src="audiosynth.js"></script>
 
 
+
+
 <!-- load some basic files and set up libraries -->
+
+
 <script src="audiosynth.js"></script>
 <script src="Timer.js"></script>
 <script src="https://cdn.jsdelivr.net/npm/vue/dist/vue.js"></script>
 <script language="javascript" src="vars.js"></script>
 
 
+
 <!-- Load d3.js -->
+
+
 <script src="https://d3js.org/d3.v4.js"></script>
 <script language="javascript" src="render.js"></script>
+
 
 <audio id="loseAudio">
 
@@ -53,24 +73,21 @@ A 2 player game can be restarted or deleted.
 
     <source src="applause.mp3" type="audio/mpeg" preload="auto">
 </audio>
-<!--
+
+
 <script src="https://cdn.jsdelivr.net/npm/vue/dist/vue.js"></script>
--->
-<script src="http://seanwayland.live:4001/socket.io/socket.io.js"></script>
-<!--
-<script src="/socket.io/socket.io.js"></script>
--->
-
-<!--
-<script src ="https://cdnjs.cloudflare.com/ajax/libs/socket.io/2.3.0/socket.io.dev.js"></script>
--->
 
 
-<script scr="./socket.js"></script>
+
+
+
+
 <script src="https://code.jquery.com/jquery-1.11.1.js"></script>
 
 <link ref="stylesheet" src="./node_modules/vue-slider-component/theme/default.css">
 <script src="./node_modules/vue-slider-component/dist/vue-slider-component.umd.min.js"></script>
+
+
 
 
 <script>
@@ -84,7 +101,6 @@ A 2 player game can be restarted or deleted.
     testInstance === Synth; // true
 </script>
 
-<script src="http://seanwayland.live:3000/socket.io/socket.io.js" type="text/javascript"></script>
 
 
 
@@ -100,7 +116,10 @@ A 2 player game can be restarted or deleted.
 
 
     //var socket = io();
-    var socket = io('http://seanwayland.live:4001');
+    //var socket = io('./:4001');
+    var socket = io("https://www.seanwayland.live:4001", {secure: true});
+
+
 
     var room = 1;
     var otherPlayerName = "";
@@ -287,8 +306,76 @@ A 2 player game can be restarted or deleted.
 </style>
 
 
+<div id="vue_det" class="right">
 
 
+    <!--
+    VUE ELEMENT TO HOLD CHAT MESSAGES AND CONNECTIONS DATA
+    -->
+    <input type="text" v-on:keyup.enter="showinputvalue" v-bind:style="styleobj" placeholder="Enter your name"/>
+    <input type="text" v-on:keyup.enter="sendaMessage" v-bind:style="styleobj" placeholder="send a chat "/>
+    <!--
+    <input type = "text" v-on:keyup.enter = "sendShotMessage" v-bind:style = "styleobj" placeholder = "send a shot to other player "/>
+    -->
+    <br> </br>
+    <b>Nickname : {{nickname}}</b>
+    <br> </br>
+    <b>RoomNumber : {{RoomNumber}}</b>
+    <br> </br>
+    <b>Other Player : {{otherName}}</b>
+    <br> </br>
+    <b>Playing now: {{playingNow}}</b>
+    <br> </br>
+    <b>Secret Code: {{codeMessage}}</b>
+    <br> </br>
+    <b>Guess taken: {{guessMessage}}</b>
+    <br> </br>
+
+    <b>Chat message : {{message}}</b>
+
+    <!--
+
+    <br> </br>
+
+    <b>Last Winner : {{lastWinner}}</b>
+
+    <br> </br>
+
+    -->
+
+    <br> </br>
+
+    <b> This game old messages </b>
+    <li v-for="index in 4" :key="index">
+        {{ Messages[index].name + ' says: ' + Messages[index].message}}
+    </li>
+
+    <br> </br>
+
+    <!--
+    <b> This game old winners  </b>
+    <li v-for="index in 4" :key="index">
+        {{ oldWinners[index].name }}
+    </li>
+
+
+    <br> </br>
+    -->
+
+    <b> Fossilised room messages graffiti </b>
+
+
+    <li v-for="index in 4" :key="index">
+        {{ oldMessages[index].name + ' says: ' + oldMessages[index].message}}
+    </li>
+
+
+    <!--
+    <button v-on:click="testMessage">test message</button>
+    -->
+
+
+</div>
 <script>
     // import io from 'socket.io-client';
 
@@ -542,9 +629,8 @@ A 2 player game can be restarted or deleted.
 </script>
 
 
-<p>EAR TRAINING CHALLENGE! </br>
-    Guess the bank vault's secret melody code and bankrupt the bank!! <br>To start, select
-    some notes from the left keyboard, then generate a new secret melody code. <br> </p>
+<p><small>Ear training challenge! Guess the bank vault's secret melody code and bankrupt the bank!! <br>To start, select
+    some notes from the left keyboard, then generate a new secret melody code. <br> </small></p>
 <button class="y" id="instructions" onclick="instructionsFunction()">Game Instructions</button>
 
 <!--
@@ -556,7 +642,15 @@ document.getElementById("newCode").disabled = true;
 
 <button class="y" id="melody" onclick="myFunction()">Click me to play secret melody code.</button>
 </br>
+<a href="/analytics" target="_blank">click to open analytics page in new window </a>
+</br>
 
+<!--
+</br>
+<a href="https://www.seanwayland.live:4001/" target="_blank">Click to add another player</a>
+</br>
+
+-->
 
 <p><small>Select number of notes to guess with the left slider. Each extra note adds $100 to bet!</small></p>
 <div id="num-notes" class="a">
@@ -584,7 +678,7 @@ document.getElementById("newCode").disabled = true;
 <div class="keyboard">
 
 
-    <svg xmlns="http://www.w3.org/2000/svg" id="piano" width="300" height="150">
+    <svg xmlns="https://www.w3.org/2000/svg" id="piano" width="300" height="150">
 
         <!-- SVG piano keyboard. I borrowed the dimensions from somewhere. Cant remember now !
         Used to select which notes are in the random melody choice
@@ -625,7 +719,7 @@ document.getElementById("newCode").disabled = true;
 
     <!-- a 2nd keyboard to play notes on ! -->
 
-    <svg xmlns="http://www.w3.org/2000/svg" id="piano2" width="300" height="150">
+    <svg xmlns="https://www.w3.org/2000/svg" id="piano2" width="300" height="150">
 
 
         <rect style="fill:white;stroke:black" id="Ckeyb2" class="btn" x="0" y="0" width="23" height="120"
@@ -672,7 +766,7 @@ document.getElementById("newCode").disabled = true;
     <!-- I wanted to try some animation .. I created a sh$tty dollar bill and made it move across the page
     when a correct guess occurs. Pretty lame !!! -->
 
-    <svg xmlns="http://www.w3.org/2000/svg" height="90" width="640">
+    <svg xmlns="https://www.w3.org/2000/svg" height="90" width="640">
         <g id="dollarbill" xmlns="http://www.w3.org/2000/svg">
             <rect x="0" y="0" width="90" height="40" fill="green">
                 <animate xmlns="http://www.w3.org/2000/svg" id="dollar" attributeName="x" attributeType="XML"
@@ -705,7 +799,7 @@ document.getElementById("newCode").disabled = true;
     player dollars: $
     {{ value }} &nbsp;&nbsp; &nbsp;&nbsp; &nbsp;&nbsp;&nbsp;&nbsp; &nbsp;&nbsp;
 
-
+    other player dollars: $ {{ value2 }} &nbsp;&nbsp; &nbsp;&nbsp; &nbsp;&nbsp;&nbsp;&nbsp; &nbsp;&nbsp;
 
 </div>
 
